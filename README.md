@@ -1,108 +1,110 @@
-![OpenWrt logo](include/logo.png)
+# ZTE E8820v2云编译库—2
 
-OpenWrt Project is a Linux operating system targeting embedded devices. Instead
-of trying to create a single, static firmware, OpenWrt provides a fully
-writable filesystem with package management. This frees you from the
-application selection and configuration provided by the vendor and allows you
-to customize the device through the use of packages to suit any application.
-For developers, OpenWrt is the framework to build an application without having
-to build a complete firmware around it; for users this means the ability for
-full customization, to use the device in ways never envisioned.
+首先感谢siwind的源码库 https://github.com/siwind/openwrt 以及他修改的dts文件
 
-Sunshine!
+增加了科学feeds源，保证此库可以正确编译。
 
-## Download
 
-Built firmware images are available for many architectures and come with a
-package selection to be used as WiFi home router. To quickly find a factory
-image usable to migrate from a vendor stock firmware to OpenWrt, try the
-*Firmware Selector*.
+## 进行Aciton准备工作
 
-* [OpenWrt Firmware Selector](https://firmware-selector.openwrt.org/)
+1.因为源码中没有e8820v2的dts文件和机型定义，所以首先要将Action和源码folk，然后下载siwind大佬制作的dts文件，链接上面已经给到，将e8820v2的dts文件复制到源码/target/linux/ramips/dts内，然后编辑/target/linux/ramips/image下的mt7621.mk，在最后添加e8820v2的机型定义，如下:
 
-If your device is supported, please follow the **Info** link to see install
-instructions or consult the support resources listed below.
+   ```bash
+   define Device/zte_e8820v2
+     $(Device/dsa-migration)
+     $(Device/uimage-lzma-loader)
+     IMAGE_SIZE := 16064k
+     DEVICE_VENDOR := ZTE
+     DEVICE_MODEL := E8820V2
+     DEVICE_COMPAT_VERSION := 2.0
+     DEVICE_PACKAGES := kmod-mt7603e kmod-mt76x2e kmod-usb2 \
+   	  kmod-usb-ledtrig-usbport luci-app-mtwifi -wpad-openssl
+   endef
+   TARGET_DEVICES += zte_e8820v2
+   ```
 
-## 
+——————————————————————————————————————————————————————————————
+PS:如果是硬改的32m的rom，需要修改dts和机型代码，dts文件中这处字段需要修改：
 
-An advanced user may require additional or specific package. (Toolchain, SDK, ...) For everything else than simple firmware download, try the wiki download page:
+   ```bash
+   partition@50000 {
+	   			compatible = "denx,uimage";
+		   		label = "firmware";
+		   		reg = <0x50000 0xfb0000>;
+		   	};
 
-* [OpenWrt Wiki Download](https://openwrt.org/downloads)
+   # 将0xfb0000修改为0x1fb0000
+   ```
 
-## Development
+机型代码修改如下：
 
-To build your own firmware you need a GNU/Linux, BSD or MacOSX system (case
-sensitive filesystem required). Cygwin is unsupported because of the lack of a
-case sensitive file system.
+   ```bash
+   define Device/zte_e8820v2
+     $(Device/dsa-migration)
+     $(Device/uimage-lzma-loader)
+     IMAGE_SIZE := 32448k
+     DEVICE_VENDOR := ZTE
+     DEVICE_MODEL := E8820V2
+     DEVICE_COMPAT_VERSION := 2.0
+     DEVICE_PACKAGES := kmod-mt7603e kmod-mt76x2e kmod-usb2 \
+   	  kmod-usb-ledtrig-usbport luci-app-mtwifi -wpad-openssl
+   endef
+   TARGET_DEVICES += zte_e8820v2
 
-### Requirements
+   # 将IMAGE_SIZE的值修改为32448k
+   ```
+——————————————————————————————————————————————————————————————
 
-You need the following tools to compile OpenWrt, the package names vary between
-distributions. A complete list with distribution specific packages is found in
-the [Build System Setup](https://openwrt.org/docs/guide-developer/build-system/install-buildsystem)
-documentation.
+### 编辑Action库
 
-```
-binutils bzip2 diff find flex gawk gcc-6+ getopt grep install libc-dev libz-dev
-make4.1+ perl python3.7+ rsync subversion unzip which
-```
+修改/.github/workflows/build-openwrt.yml文件:
 
-### Quickstart
+   ```bash
+  env:
+  REPO_URL: https://github.com/yourname/lede.git
+  REPO_BRANCH: master
+  FEEDS_CONF: feeds.conf.default
+  CONFIG_FILE: .config
+  DIY_P1_SH: diy-part1.sh
+  DIY_P2_SH: diy-part2.sh
+  UPLOAD_BIN_DIR: false
+  UPLOAD_FIRMWARE: true
+  UPLOAD_COWTRANSFER: false
+  UPLOAD_WETRANSFER: false
+  UPLOAD_RELEASE: false
+  TZ: Asia/Shanghai
 
-1. Run `./scripts/feeds update -a` to obtain all the latest package definitions
-   defined in feeds.conf / feeds.conf.default
+  # REPO_URL的值修改为你的源码仓库地址
+   ```
 
-2. Run `./scripts/feeds install -a` to install symlinks for all obtained
-   packages into package/feeds/
+### 下面进行固件自定义，不推荐直接对.config进行编译，对小白来说很容易没选对依赖，我感觉没有物理机好用。
 
-3. Run `make menuconfig` to select your preferred configuration for the
-   toolchain, target system & firmware packages.
+1. 首先装好 Linux 系统，推荐 Debian 11 或 Ubuntu LTS
 
-4. Run `make` to build your firmware. This will download all sources, build the
-   cross-compile toolchain and then cross-compile the GNU/Linux kernel & all chosen
-   applications for your target system.
+2. 安装编译依赖
 
-### Related Repositories
+   ```bash
+   sudo apt update -y
+   sudo apt full-upgrade -y
+   sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
+   bzip2 ccache cmake cpio curl device-tree-compiler fastjar flex gawk gettext gcc-multilib g++-multilib \
+   git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libglib2.0-dev libgmp3-dev libltdl-dev \
+   libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libreadline-dev libssl-dev libtool lrzsz \
+   mkisofs msmtp nano ninja-build p7zip p7zip-full patch pkgconf python2.7 python3 python3-pyelftools \
+   libpython3-dev qemu-utils rsync scons squashfs-tools subversion swig texinfo uglifyjs upx-ucl unzip \
+   vim wget xmlto xxd zlib1g-dev python3-setuptools
+   ```
 
-The main repository uses multiple sub-repositories to manage packages of
-different categories. All packages are installed via the OpenWrt package
-manager called `opkg`. If you're looking to develop the web interface or port
-packages to OpenWrt, please find the fitting repository below.
+3. 下载你修改后的源代码，更新 feeds 并选择配置
 
-* [LuCI Web Interface](https://github.com/openwrt/luci): Modern and modular
-  interface to control the device via a web browser.
+   ```bash
+   git clone https://github.com/yourid/lede
+   cd lede
+   ./scripts/feeds update -a
+   ./scripts/feeds install -a
+   make menuconfig
+   ```
 
-* [OpenWrt Packages](https://github.com/openwrt/packages): Community repository
-  of ported packages.
+附上一份OpenWrt 编译 LuCI -> Applications 添加插件应用说明，https://www.right.com.cn/forum/thread-344825-1-1.html
 
-* [OpenWrt Routing](https://github.com/openwrt/routing): Packages specifically
-  focused on (mesh) routing.
-
-* [OpenWrt Video](https://github.com/openwrt/video): Packages specifically
-  focused on display servers and clients (Xorg and Wayland).
-
-## Support Information
-
-For a list of supported devices see the [OpenWrt Hardware Database](https://openwrt.org/supported_devices)
-
-### Documentation
-
-* [Quick Start Guide](https://openwrt.org/docs/guide-quick-start/start)
-* [User Guide](https://openwrt.org/docs/guide-user/start)
-* [Developer Documentation](https://openwrt.org/docs/guide-developer/start)
-* [Technical Reference](https://openwrt.org/docs/techref/start)
-
-### Support Community
-
-* [Forum](https://forum.openwrt.org): For usage, projects, discussions and hardware advise.
-* [Support Chat](https://webchat.oftc.net/#openwrt): Channel `#openwrt` on **oftc.net**.
-
-### Developer Community
-
-* [Bug Reports](https://bugs.openwrt.org): Report bugs in OpenWrt
-* [Dev Mailing List](https://lists.openwrt.org/mailman/listinfo/openwrt-devel): Send patches
-* [Dev Chat](https://webchat.oftc.net/#openwrt-devel): Channel `#openwrt-devel` on **oftc.net**.
-
-## License
-
-OpenWrt is licensed under GPL-2.0
+4. 由于我们是利用Aciton进行云编译，所以在make menuconfig之后，只要把lede文件夹下的.config文件上传到Actions-OpenWrt上并覆盖原文件就行了，之后就是常规的云编译步骤。
