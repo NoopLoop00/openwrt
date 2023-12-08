@@ -2,29 +2,12 @@
 
 首先感谢siwind的源码库 https://github.com/siwind/openwrt 以及他修改的dts文件
 
-增加了科学feeds源，保证此库可以正确编译。
-
+增加了科学feeds源，保证此库可以正确编译（只测试了32+128硬件配置）。
 
 ## 进行Aciton准备工作
 
-1.因为源码中没有e8820v2的dts文件和机型定义，所以首先要将Action和源码folk，然后下载siwind大佬制作的dts文件，链接上面已经给到，将e8820v2的dts文件复制到源码/target/linux/ramips/dts内，然后编辑/target/linux/ramips/image下的mt7621.mk，在最后添加e8820v2的机型定义，如下:
-
-   ```bash
-   define Device/zte_e8820v2
-     $(Device/dsa-migration)
-     $(Device/uimage-lzma-loader)
-     IMAGE_SIZE := 16064k
-     DEVICE_VENDOR := ZTE
-     DEVICE_MODEL := E8820V2
-     DEVICE_COMPAT_VERSION := 2.0
-     DEVICE_PACKAGES := kmod-mt7603e kmod-mt76x2e kmod-usb2 \
-   	  kmod-usb-ledtrig-usbport luci-app-mtwifi -wpad-openssl
-   endef
-   TARGET_DEVICES += zte_e8820v2
-   ```
-
-——————————————————————————————————————————————————————————————
-PS:如果是硬改的32m的rom，需要修改dts和机型代码，dts文件中这处字段需要修改：
+由于我硬改了了32+128，所以要分别对dts和机型描述进行修改，分别在/target/linux/ramips/dts和/target/linux/ramips/image下的mt7621.mk内。
+dts文件中这处字段需要修改：
 
    ```bash
    partition@50000 {
