@@ -5,4 +5,5 @@ src-git telephony https://github.com/openwrt/telephony.git
 src-git management https://github.com/openwrt-management/packages.git
 src-git freifunk https://github.com/freifunk/openwrt-packages.git
 src-git helloworld https://github.com/fw876/helloworld.git
-
+src-git coolsnowwolf https://github.com/coolsnowwolf/packages
+src-git small8 https://github.com/kenzok8/small-package
